@@ -14,7 +14,7 @@
 #  -p --print
 #
 # == Description
-# Add a timestamp to the current day in the provided file, or in '~/timesheet'
+# Add a timestamp to the current day in the provided file
 #
 # <b>-h, -?, --help</b>
 #	brief help message
@@ -69,7 +69,7 @@ rescue
   exit
 end
 
-filename = ARGV[0] || File.expand_path('~/timesheet')
+filename = ARGV[0] || abort("A timesheet storage file must be provided")
 
 lines = File.open(filename).readlines
 match = []
