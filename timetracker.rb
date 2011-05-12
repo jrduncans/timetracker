@@ -1,46 +1,11 @@
-#!/usr/bin/ruby
-
-# == Name
-#
-# timetracker - track time in a simple text format
-#
-# == Synopsis
-#
-# *timetracker* [options] [file]
-#
-# Options:
-#  -h -? --help,
-#  -m --message
-#  -p --print
-#
-# == Description
-# Add a timestamp to the current day in the provided file
-#
-# <b>-h, -?, --help</b>
-#	brief help message
-#
-# <b>-m, --message MESSAGE</b>
-#	Add a message to the current day
-#
-# <b>-p, --print [DATE]</b>
-#	Print the row for the current day
-#
-# <b>-d, --dry-run</b>
-#	Print what the line would have looked like, but do not modify the file
-#
-# <b>-q, --quitting-time [HOURS]</b>
-#	Print the time you would have to stop working to meet 8 hours (or the number of provided hours)
-#
-# <b>-r, --repair</b>
-#	Reparse all lines in the file to ensure the hours worked is correct
+#!/usr/bin/env ruby
 
 require 'optparse'
-require 'rdoc/usage'
 require 'time'
 require 'enumerator'
 
 now = Time.now
-date = now.strftime('%F')
+date = now.strftime('%Y-%m-%d')
 time = now.strftime('%X')
 
 options = {}
@@ -57,8 +22,8 @@ opt_parser = OptionParser.new do |opts|
   opts.on('-r', '--repair', 'reparse all lines in the file to ensure the hours worked is correct') {options[:repair] = true}
 
   opts.on_tail('-h', '-?', '--help', 'brief help message') do
-    ENV['RI'] = '-f ansi'
-    RDoc::usage
+	puts opts
+	exit
   end
 end
 
