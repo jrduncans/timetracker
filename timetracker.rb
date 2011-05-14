@@ -50,7 +50,7 @@ end
 
 filename = ARGV[0] || abort("A timesheet storage file must be provided")
 
-lines = File.open(filename).readlines
+lines = File.readable?(filename) ? File.open(filename).readlines : []
 match = []
 
 if options[:print]
