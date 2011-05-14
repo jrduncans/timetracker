@@ -57,8 +57,13 @@ if options[:print]
   match = lines.grep(/^[-\d]*#{options[:print]}/)
 elsif options[:quitting]
   match = lines.grep(/^#{date}/)
-  row = match[0].chomp.split("\t")[2..-2]
-
+  row = match[0]
+  unless row
+    puts 'You must have started the day to calculate quitting time.'
+    exit
+  end
+  row = row.chomp.split("\t")[2..-2]
+  
   if row.length % 2 == 0
     puts 'You must be currently working to calculate quitting time.'
     exit
