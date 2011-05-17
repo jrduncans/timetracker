@@ -51,7 +51,7 @@ end
 filename = ARGV[0] || abort("A timesheet storage file must be provided")
 
 def parse_row(line)
-  row = line.chomp.split(/\s{2,}/)
+  row = line.chomp.split(/\s{2,}|\t/)
   if row[-1] =~ /^\d{2}:\d{2}:\d{2}$/
     row << ''
   end
