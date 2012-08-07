@@ -37,7 +37,7 @@ Display 'quitting time' to tell when you 8 hours are up:
     ~:$ t -q
     05:54:30
 
-Display 'quitting time' to tell you when half and hour is up:
+Display 'quitting time' to tell you when half an hour is up:
 
     ~:$ t -q 0.5
     22:24:30
