@@ -36,7 +36,7 @@ class Time
   end
 end
 
-format_date = '%Y-%m-%d'
+format_date = '%Y-%m-%d %a'
 format_time = '%H:%M'
 
 now = Time.now
@@ -121,19 +121,33 @@ elsif options[:message]
     lines << match[0]
   end
 elsif options[:repair]
+  previous_day = ''
+  repaired_lines = []
   lines.each do |line|
     row = parse_row(line)
 
+    # repair date/time format
     row[0] = Time.parse(row[0]).strftime(format_date)
     row.map!{ |field| (field =~ /(\d:)+/) ? Time.parse(field).round_to_closest_minute().strftime(format_time) : field }
+
+    # insert missing days
+    if (previous_day != '')
+      while (previous_day != row[0] && row[0] != (Time.parse(previous_day) + (25*60*60)).strftime(format_date)) do
+        previous_day = (Time.parse(previous_day) + (25*60*60)).strftime(format_date)
+        repaired_lines.push(previous_day + "     0.0")
+        puts "inserting missing day: " + previous_day
+      end
+    end
 
     total_time = row[2..-2].to_enum(:each_slice, 2).inject(0) do |sum, pair|
       (pair.length < 2) ? sum : sum + (Time.parse(pair[1]) - Time.parse(pair[0]))
     end
 
+    previous_day = row[0]
     row[1] = sprintf('%4.1f', total_time / (60.0 * 60.0))
-    line.replace(to_line(row))
+    repaired_lines.push(to_line(row))
   end
+  lines = repaired_lines
 else
   match = lines.grep(/^#{date}/) do |line|
     row = parse_row(line)
