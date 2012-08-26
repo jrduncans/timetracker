@@ -18,9 +18,12 @@ require 'optparse'
 require 'time'
 require 'enumerator'
 
+format_date = '%Y-%m-%d'
+format_time = '%X'
+
 now = Time.now
-date = now.strftime('%Y-%m-%d')
-time = now.strftime('%X')
+date = now.strftime(format_date)
+time = now.strftime(format_time)
 
 options = {}
 
@@ -55,7 +58,7 @@ def parse_row(line)
   if row[-1] =~ /^\d{2}:\d{2}:\d{2}$/
     row << ''
   end
-  
+
   row
 end
 
@@ -76,7 +79,7 @@ elsif options[:quitting]
     exit
   end
   row = parse_row(row)[2..-2]
-  
+
   if row.length % 2 == 0
     puts 'You must be currently working to calculate quitting time.'
     exit
@@ -86,7 +89,7 @@ elsif options[:quitting]
     sum + (Time.parse(pair[1]) - Time.parse(pair[0]))
   end
 
-  match = (Time.parse(row[-1]) + (options[:quitting] * 3600.0 - total_time)).strftime('%X')
+  match = (Time.parse(row[-1]) + (options[:quitting] * 3600.0 - total_time)).strftime(format_time)
 elsif options[:message]
   match = lines.grep(/^#{date}/) do |line|
     row = parse_row(line)
@@ -102,6 +105,9 @@ elsif options[:message]
 elsif options[:repair]
   lines.each do |line|
     row = parse_row(line)
+
+    row[0] = Time.parse(row[0]).strftime(format_date)
+    row.map!{ |field| (field =~ /(\d:)+/) ? Time.parse(field).strftime(format_time) : field }
 
     total_time = row[2..-2].to_enum(:each_slice, 2).inject(0) do |sum, pair|
       (pair.length < 2) ? sum : sum + (Time.parse(pair[1]) - Time.parse(pair[0]))
