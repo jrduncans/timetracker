@@ -17,6 +17,7 @@
 require 'optparse'
 require 'time'
 require 'enumerator'
+require 'gruff'
 
 class Time
   def round(seconds = 60)
@@ -38,6 +39,15 @@ end
 
 format_date = '%Y-%m-%d %a'
 format_time = '%H:%M'
+expected_hours = {
+  'Sun' => 0,
+  'Mon' => 8,
+  'Tue' => 8,
+  'Wed' => 8,
+  'Thu' => 8,
+  'Fri' => 8,
+  'Sat' => 0
+}
 
 now = Time.now
 date = now.strftime(format_date)
@@ -53,6 +63,7 @@ opt_parser = OptionParser.new do |opts|
   opts.on('-p', '--print [DATE]', 'print the row for the current day') {|d| options[:print] = d || date}
   opts.on('-m', '--message MESSAGE', 'add a message to the current day') {|message| options[:message] = message.empty? ? '' : message.gsub(/\s+/, ' ').chomp}
   opts.on('-d', '--dry-run', 'print what the line would have looked like, but do not modify the file') {options[:dryrun] = true}
+  opts.on('-g', '--graph [REGEX]', 'graph time for current month (unless regex is provided)') {|regex| options[:graph] = (regex || now.strftime('%Y-%m'))}
   opts.on('-q', '--quitting-time [HOURS]', 'print the time you would have to stop working to meet 8 hours (or the number of provided hours)') {|hours| options[:quitting] = (hours || '8').to_f}
   opts.on('-r', '--repair', 'reparse all lines in the file to ensure the hours worked is correct') {options[:repair] = true}
 
@@ -89,6 +100,60 @@ match = []
 
 if options[:print]
   match = lines.grep(/^[-\d]*#{options[:print]}/)
+elsif options[:graph]
+  filename = 'timesheet-' + options[:graph] + '.png'
+  days = []
+  days_actual = []
+  days_expected = []
+  total_actual = 0
+  total_expected = 0
+  index = 0
+  index_labels = { }
+  lines.grep(/^[-\d]*#{options[:graph]}/) do |line|
+    row = parse_row(line)
+
+    days.push(expected_hours[Time.parse(row[0]).strftime('%d')])
+    days_actual.push(row[1].to_f)
+    total_actual += row[1].to_f
+    total_expected += expected_hours[Time.parse(row[0]).strftime('%a')]
+    days_expected.push(expected_hours[Time.parse(row[0]).strftime('%a')])
+ 
+    if (Time.parse(row[0]).strftime('%a') == 'Sun')
+        index_labels[index] = Time.parse(row[0]).strftime('%m/%d')
+    end
+    index += 1
+  end
+
+  graph = Gruff::Line.new('800x400')
+  graph.title = options[:graph] + "\nOvertime " + (total_actual.to_i - total_expected).to_s + " Hours"
+
+  graph.top_margin = 10
+  graph.right_margin = 10
+  graph.bottom_margin = 10
+  graph.left_margin = 10
+
+  graph.legend_font_size = 12
+  graph.marker_font_size = 12
+  graph.title_font_size = 16
+
+  graph.line_width = 2
+  graph.dot_radius = 1
+  graph.minimum_value = 0
+  graph.maximum_value = 24
+
+  graph.theme = {
+    :colors => %w(#FF420E #004586),
+    :marker_color => '#CCCCCC',
+    :background_colors => %w(#FFFFFF #FFFFFF)
+  }
+
+  graph.data("Worked " + total_actual.to_i.to_s + " Hours", days_actual)
+  graph.data("Expected " + total_expected.to_s + " Hours", days_expected)
+
+  graph.labels = index_labels
+
+  graph.write(filename)
+  puts 'timetracker graph written to ' + filename
 elsif options[:quitting]
   match = lines.grep(/^#{date}/)
   row = match[0]
@@ -167,5 +232,5 @@ else
   end
 end
 
-File.open(filename, 'w').puts lines unless options[:dryrun] or options[:print] or options[:quitting]
+File.open(filename, 'w').puts lines unless options[:dryrun] or options[:print] or options[:quitting] or options[:graph]
 puts match
