@@ -18,12 +18,30 @@ require 'optparse'
 require 'time'
 require 'enumerator'
 
+class Time
+  def round(seconds = 60)
+    Time.at((self.to_f / seconds).round * seconds)
+  end
+
+  def floor(seconds = 60)
+    Time.at((self.to_f / seconds).floor * seconds)
+  end
+
+  def round_to_closest_minute
+    if self.sec > 30 && (self.hour != 23 && self.min != 59)
+      self.round(60)
+    else
+      self.floor(60)
+    end
+  end
+end
+
 format_date = '%Y-%m-%d'
-format_time = '%X'
+format_time = '%H:%M'
 
 now = Time.now
 date = now.strftime(format_date)
-time = now.strftime(format_time)
+time = now.round_to_closest_minute().strftime(format_time)
 
 options = {}
 
@@ -55,7 +73,7 @@ filename = ARGV[0] || abort("A timesheet storage file must be provided")
 
 def parse_row(line)
   row = line.chomp.split(/\s{2,}|\t/)
-  if row[-1] =~ /^\d{2}:\d{2}:\d{2}$/
+  if row[-1] =~ /^\d{2}:\d{2}$/
     row << ''
   end
 
@@ -89,7 +107,7 @@ elsif options[:quitting]
     sum + (Time.parse(pair[1]) - Time.parse(pair[0]))
   end
 
-  match = (Time.parse(row[-1]) + (options[:quitting] * 3600.0 - total_time)).strftime(format_time)
+  match = (Time.parse(row[-1]) + (options[:quitting] * 3600.0 - total_time)).round_to_closest_minute().strftime(format_time)
 elsif options[:message]
   match = lines.grep(/^#{date}/) do |line|
     row = parse_row(line)
@@ -107,7 +125,7 @@ elsif options[:repair]
     row = parse_row(line)
 
     row[0] = Time.parse(row[0]).strftime(format_date)
-    row.map!{ |field| (field =~ /(\d:)+/) ? Time.parse(field).strftime(format_time) : field }
+    row.map!{ |field| (field =~ /(\d:)+/) ? Time.parse(field).round_to_closest_minute().strftime(format_time) : field }
 
     total_time = row[2..-2].to_enum(:each_slice, 2).inject(0) do |sum, pair|
       (pair.length < 2) ? sum : sum + (Time.parse(pair[1]) - Time.parse(pair[0]))
