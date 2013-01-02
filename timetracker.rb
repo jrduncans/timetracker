@@ -115,9 +115,17 @@ elsif options[:graph]
     days.push(expected_hours[Time.parse(row[0]).strftime('%d')])
     days_actual.push(row[1].to_f)
     total_actual += row[1].to_f
-    total_expected += expected_hours[Time.parse(row[0]).strftime('%a')]
-    days_expected.push(expected_hours[Time.parse(row[0]).strftime('%a')])
- 
+
+    if (Time.parse(row[0]) < (Time.now - (24*60*60)))
+        if (line.match(/sick|vacation|holiday/))
+            total_expected += 0
+            days_expected.push(0)
+        else
+            total_expected += expected_hours[Time.parse(row[0]).strftime('%a')]
+            days_expected.push(expected_hours[Time.parse(row[0]).strftime('%a')])
+        end
+    end
+
     if (Time.parse(row[0]).strftime('%a') == 'Sun')
         index_labels[index] = Time.parse(row[0]).strftime('%m/%d')
     end
