@@ -224,7 +224,13 @@ elsif options[:repair]
 else
   match = lines.grep(/^#{date}/) do |line|
     row = parse_row(line)
-    row = row[0..-2] << time << row[-1]
+
+    # check if this day was already inserted without any timestamps
+    if row[2..-2].length > 0
+        row = row[0..-2] << time << row[-1]
+    else
+        row = row[0..-2] << row[-1] << time
+    end
 
     total_time = row[2..-2].to_enum(:each_slice, 2).inject(0) do |sum, pair|
       (pair.length < 2) ? sum : sum + (Time.parse(pair[1]) - Time.parse(pair[0]))
