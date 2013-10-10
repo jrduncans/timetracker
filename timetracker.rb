@@ -102,9 +102,8 @@ if options[:print]
   match = lines.grep(/^[-\d]*#{options[:print]}/)
 elsif options[:graph]
   filename = 'timesheet-' + options[:graph] + '.png'
-  days = []
-  days_actual = []
-  days_expected = []
+  days_actual = { }
+  days_expected = { }
   total_actual = 0
   total_expected = 0
   index = 0
@@ -112,25 +111,47 @@ elsif options[:graph]
   lines.grep(/^[-\d]*#{options[:graph]}/) do |line|
     row = parse_row(line)
 
-    days.push(expected_hours[Time.parse(row[0]).strftime('%d')])
-    days_actual.push(row[1].to_f)
-    total_actual += row[1].to_f
+    if (Time.parse(row[0]) < Time.now)
+        # handle duplicate day entries
+        if days_actual.has_key?(row[0])
+            days_actual[row[0]] = row[1].to_f + days_actual[row[0]].to_f
 
-    if (Time.parse(row[0]) < (Time.now - (24*60*60)))
-        if (line.match(/sick|vacation|holiday/))
-            total_expected += 0
-            days_expected.push(0)
+            if (line.match(/sick|vacation|holiday/))
+                days_expected[row[0]] = 0
+            end
         else
-            total_expected += expected_hours[Time.parse(row[0]).strftime('%a')]
-            days_expected.push(expected_hours[Time.parse(row[0]).strftime('%a')])
+            days_actual[row[0]] = row[1].to_f
+
+            if (line.match(/sick|vacation|holiday/))
+                days_expected[row[0]] = 0
+            else
+                days_expected[row[0]] = expected_hours[Time.parse(row[0]).strftime('%a')]
+            end
         end
     end
 
-    if (Time.parse(row[0]).strftime('%a') == 'Sun')
-        index_labels[index] = Time.parse(row[0]).strftime('%m/%d')
-    end
     index += 1
   end
+
+  if (days_expected.size >= 365)
+    labels_format = '%Y-%m'
+    labels_count = 7
+  else
+    labels_format = '%m-%d'
+    labels_count = 11
+  end
+
+  days_expected.each_with_index do |(key, value), index|
+    if ((index % (days_expected.size/labels_count)) == 0)
+      index_labels[index] = Time.parse(key).strftime(labels_format)
+    end
+  end
+
+#  step(days_expected.size, expected.size / 5 { |i| $stderr.puts "#{i} "}
+#  $stderr.puts days_expected.size / 5
+
+  total_expected = days_expected.values.inject{|sum,x| sum + x }
+  total_actual = days_actual.values.inject{|sum,x| sum + x }
 
   graph = Gruff::Line.new('800x400')
   graph.title = options[:graph] + "\nOvertime " + (total_actual.to_i - total_expected).to_s + " Hours"
@@ -139,6 +160,9 @@ elsif options[:graph]
   graph.right_margin = 10
   graph.bottom_margin = 10
   graph.left_margin = 10
+
+  graph.title_margin = 40
+  graph.legend_margin = 0
 
   graph.legend_font_size = 12
   graph.marker_font_size = 12
@@ -155,8 +179,8 @@ elsif options[:graph]
     :background_colors => %w(#FFFFFF #FFFFFF)
   }
 
-  graph.data("Worked " + total_actual.to_i.to_s + " Hours", days_actual)
-  graph.data("Expected " + total_expected.to_s + " Hours", days_expected)
+  graph.data("Worked " + total_actual.to_i.to_s + " Hours", days_actual.values)
+  graph.data("Expected " + total_expected.to_s + " Hours", days_expected.values)
 
   graph.labels = index_labels
 
