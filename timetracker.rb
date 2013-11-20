@@ -34,6 +34,7 @@ opt_parser = OptionParser.new do |opts|
   opts.on('-d', '--dry-run', 'print what the line would have looked like, but do not modify the file') {options[:dryrun] = true}
   opts.on('-q', '--quitting-time [HOURS]', 'print the time you would have to stop working to meet 8 hours (or the number of provided hours)') {|hours| options[:quitting] = (hours || '8').to_f}
   opts.on('-r', '--repair', 'reparse all lines in the file to ensure the hours worked is correct') {options[:repair] = true}
+  opts.on('-l', '--list [COUNT]', 'list the most recent [COUNT] entries (default 1, identical to -p)') {|count| options[:list] = count.nil? ? 1 : count.to_i}
 
   opts.on_tail('-h', '-?', '--help', 'brief help message') do
 	puts opts
@@ -49,6 +50,10 @@ rescue
 end
 
 filename = ARGV[0] || abort("A timesheet storage file must be provided")
+
+def should_print(opts)
+  opts[:dryrun] or opts[:print] or opts[:quitting] or opts[:list]
+end
 
 def parse_row(line)
   row = line.chomp.split(/\s{2,}|\t/)
@@ -102,7 +107,6 @@ elsif options[:message]
 elsif options[:repair]
   lines.each do |line|
     row = parse_row(line)
-
     total_time = row[2..-2].to_enum(:each_slice, 2).inject(0) do |sum, pair|
       (pair.length < 2) ? sum : sum + (Time.parse(pair[1]) - Time.parse(pair[0]))
     end
@@ -110,6 +114,8 @@ elsif options[:repair]
     row[1] = sprintf('%4.1f', total_time / (60.0 * 60.0))
     line.replace(to_line(row))
   end
+elsif options[:list]
+  match = lines[-options[:list]..lines.length].join
 else
   match = lines.grep(/^#{date}/) do |line|
     row = parse_row(line)
@@ -129,5 +135,5 @@ else
   end
 end
 
-File.open(filename, 'w').puts lines unless options[:dryrun] or options[:print] or options[:quitting]
+File.open(filename, 'w').puts lines if should_print(options)
 puts match
