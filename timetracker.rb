@@ -107,6 +107,7 @@ elsif options[:message]
 elsif options[:repair]
   lines.each do |line|
     row = parse_row(line)
+
     total_time = row[2..-2].to_enum(:each_slice, 2).inject(0) do |sum, pair|
       (pair.length < 2) ? sum : sum + (Time.parse(pair[1]) - Time.parse(pair[0]))
     end
