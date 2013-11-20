@@ -22,7 +22,7 @@ now = Time.now
 date = now.strftime('%Y-%m-%d')
 time = now.strftime('%X')
 
-options = {}
+options = {:count => 5}
 
 opt_parser = OptionParser.new do |opts|
   opts.banner = "Usage:\n\ttimetracker [options] [file]"
@@ -34,6 +34,8 @@ opt_parser = OptionParser.new do |opts|
   opts.on('-d', '--dry-run', 'print what the line would have looked like, but do not modify the file') {options[:dryrun] = true}
   opts.on('-q', '--quitting-time [HOURS]', 'print the time you would have to stop working to meet 8 hours (or the number of provided hours)') {|hours| options[:quitting] = (hours || '8').to_f}
   opts.on('-r', '--repair', 'reparse all lines in the file to ensure the hours worked is correct') {options[:repair] = true}
+  opts.on('-l', '--list', 'list the most recent entries (limited by -c)') {options[:list] = true}
+  opts.on('-c', '--count [COUNT]', 'restrict list-based functionality to the most recent [COUNT]') {|count| options[:count] = count.nil? ? 5 : count.to_i}
 
   opts.on_tail('-h', '-?', '--help', 'brief help message') do
 	puts opts
@@ -49,6 +51,8 @@ rescue
 end
 
 filename = ARGV[0] || abort("A timesheet storage file must be provided")
+
+should_only_print = !!(options[:dryrun] or options[:print] or options[:quitting] or options[:list])
 
 def parse_row(line)
   row = line.chomp.split(/\s{2,}|\t/)
@@ -110,6 +114,8 @@ elsif options[:repair]
     row[1] = sprintf('%4.1f', total_time / (60.0 * 60.0))
     line.replace(to_line(row))
   end
+elsif options[:list]
+  match = lines[-options[:count]..lines.length].join
 else
   match = lines.grep(/^#{date}/) do |line|
     row = parse_row(line)
@@ -129,5 +135,5 @@ else
   end
 end
 
-File.open(filename, 'w').puts lines unless options[:dryrun] or options[:print] or options[:quitting]
+File.open(filename, 'w').puts lines unless should_only_print
 puts match
