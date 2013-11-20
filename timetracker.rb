@@ -52,8 +52,8 @@ end
 
 filename = ARGV[0] || abort("A timesheet storage file must be provided")
 
-def should_print_only(opts)
-  opts[:dryrun] or opts[:print] or opts[:quitting] or opts[:list]
+def should_only_print?
+  options[:dryrun] or options[:print] or options[:quitting] or options[:list]
 end
 
 def parse_row(line)
@@ -137,5 +137,5 @@ else
   end
 end
 
-File.open(filename, 'w').puts lines unless should_print_only(options)
+File.open(filename, 'w').puts lines unless should_only_print?
 puts match
