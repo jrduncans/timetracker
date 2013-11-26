@@ -35,6 +35,7 @@ opt_parser = OptionParser.new do |opts|
   opts.on('-q', '--quitting-time [HOURS]', 'print the time you would have to stop working to meet 8 hours (or the number of provided hours)') {|hours| options[:quitting] = (hours || '8').to_f}
   opts.on('-r', '--repair', 'reparse all lines in the file to ensure the hours worked is correct') {options[:repair] = true}
   opts.on('-l', '--list', 'list the most recent entries (limited by -c)') {options[:list] = true}
+  opts.on('-u', '--undo', 'undo the more recent entry') {options[:undo] = true}
   opts.on('-c', '--count [COUNT]', 'restrict list-based functionality to the most recent [COUNT]') {|count| options[:count] = count.nil? ? 5 : count.to_i}
 
   opts.on_tail('-h', '-?', '--help', 'brief help message') do
