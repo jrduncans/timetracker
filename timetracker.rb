@@ -121,7 +121,7 @@ elsif options[:repair]
   end
 elsif options[:undo]
   row = parse_row(lines[-1])
-  if row.size > 2
+  if row.size > 3
     row.delete_at(-2)
   end
   match = to_line(repair_row(row))
