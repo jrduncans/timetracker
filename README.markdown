@@ -32,6 +32,11 @@ Print-out:
     ~:$ t -p
     2011-05-10     0.1    21:52:16    21:56:48    21:59:02
 
+Undo the most recent entry (pop the last entry):
+
+    ~:$ t -u
+    2011-05-10     0.1    21:52:16    21:56:48
+
 List the most recent 5 entries:
 
     ~:$ t -l

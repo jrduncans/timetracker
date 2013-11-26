@@ -35,6 +35,7 @@ opt_parser = OptionParser.new do |opts|
   opts.on('-q', '--quitting-time [HOURS]', 'print the time you would have to stop working to meet 8 hours (or the number of provided hours)') {|hours| options[:quitting] = (hours || '8').to_f}
   opts.on('-r', '--repair', 'reparse all lines in the file to ensure the hours worked is correct') {options[:repair] = true}
   opts.on('-l', '--list', 'list the most recent entries (limited by -c)') {options[:list] = true}
+  opts.on('-u', '--undo', 'undo the more recent entry') {options[:undo] = true}
   opts.on('-c', '--count [COUNT]', 'restrict list-based functionality to the most recent [COUNT]') {|count| options[:count] = count.nil? ? 5 : count.to_i}
 
   opts.on_tail('-h', '-?', '--help', 'brief help message') do
@@ -65,6 +66,16 @@ end
 
 def to_line(row)
   row.reject {|s| s.empty?}.join(' ' * 4)
+end
+
+def repair_row(row)
+  total_time = row[2..-2].to_enum(:each_slice, 2).inject(0) do |sum, pair|
+    (pair.length < 2) ? sum : sum + (Time.parse(pair[1]) - Time.parse(pair[0]))
+  end
+
+  row[1] = sprintf('%4.1f', total_time / (60.0 * 60.0))
+
+  row
 end
 
 lines = File.readable?(filename) ? File.open(filename).readlines : []
@@ -106,14 +117,17 @@ elsif options[:message]
 elsif options[:repair]
   lines.each do |line|
     row = parse_row(line)
-
-    total_time = row[2..-2].to_enum(:each_slice, 2).inject(0) do |sum, pair|
-      (pair.length < 2) ? sum : sum + (Time.parse(pair[1]) - Time.parse(pair[0]))
-    end
-
-    row[1] = sprintf('%4.1f', total_time / (60.0 * 60.0))
-    line.replace(to_line(row))
+    line.replace(to_line(repair_row(row)))
   end
+elsif options[:undo]
+  row = parse_row(lines[-1])
+  if row.size > 2
+    row.delete_at(-2)
+  end
+  match = to_line(repair_row(row))
+
+  lines[-1].replace(match)
+
 elsif options[:list]
   match = lines[-options[:count]..lines.length].join
 else
@@ -121,12 +135,7 @@ else
     row = parse_row(line)
     row = row[0..-2] << time << row[-1]
 
-    total_time = row[2..-2].to_enum(:each_slice, 2).inject(0) do |sum, pair|
-      (pair.length < 2) ? sum : sum + (Time.parse(pair[1]) - Time.parse(pair[0]))
-    end
-
-    row[1] = sprintf('%4.1f', total_time / (60.0 * 60.0))
-    line.replace(to_line(row))
+    line.replace(to_line(repair_row(row)))
   end
 
   if match.empty?
